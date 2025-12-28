@@ -13,7 +13,7 @@ Secure, production-style REST API built with Express, TypeScript, Prisma, Postgr
 - CRUD demo resource `items` with ownership checks and IDOR protection
 - Pino logging with per-request requestId correlation
 - Readiness probe for orchestration health checks
-- Weak/shared secret detection in production
+- Rejects obviously weak secrets in production
 - Trust proxy for accurate rate limiting behind load balancers
 
 ## Production Enhancements
@@ -34,26 +34,31 @@ Secure, production-style REST API built with Express, TypeScript, Prisma, Postgr
 
 1. Install deps
 
-```
+```bash
 npm install
 ```
 
 2. Copy env
 
-```
+```bash
+# Linux/macOS
 cp .env.example .env
-# edit secrets and DATABASE_URL if needed
+
+# Windows PowerShell
+Copy-Item .env.example .env
+
+# Edit secrets and DATABASE_URL as needed
 ```
 
 3. Start Postgres
 
-```
+```bash
 docker compose up -d
 ```
 
 4. Prisma generate + migrate + seed
 
-```
+```bash
 npm run prisma:generate
 npm run prisma:migrate
 npm run seed
@@ -61,7 +66,7 @@ npm run seed
 
 5. Run the API
 
-```
+```bash
 npm run dev   # hot reload
 # or
 npm run build && npm start
@@ -77,7 +82,14 @@ npm run build && npm start
 
 ## Testing
 
-Run the in-process test suite:
+The test suite runs in-process (spins up its own server instance), so the API does **not** need to be running separately.
+
+**Prerequisites before testing:**
+1. Database running (`docker compose up -d`)
+2. Migrations applied (`npm run prisma:migrate`)
+3. Database seeded (`npm run seed`)
+
+**Run tests:**
 
 ```bash
 npx tsx tests/testChecklist.ts
@@ -93,7 +105,11 @@ Results are written to `tests/test-results.json` with pass/fail counts and times
 - Rate limiting
 - Error formatting
 
+**Note for Windows:** Use `curl.exe` instead of `curl` to avoid PowerShell's `Invoke-WebRequest` alias.
+
 ### Example cURL
+
+**Windows users:** Use `curl.exe` instead of `curl` (PowerShell has a curl alias that behaves differently).
 
 ```bash
 # register
@@ -121,13 +137,37 @@ curl -X POST http://localhost:3000/api/v1/items \
   -d '{"title":"My item","description":"demo"}'
 ```
 
+## Threat Model / Assumptions
+
+This API mitigates common threats but is not a complete security solution:
+
+**Explicitly mitigated:**
+- **IDOR attacks**: Owner-based access control; admin-only cross-tenant reads
+- **Brute force**: Aggressive rate limiting on auth endpoints
+- **Token reuse**: Refresh tokens are rotated; old tokens revoked and reuse attempts audited
+- **Injection attacks**: Parameterized Prisma queries; Zod validation on all inputs
+- **Common misconfigurations**: Enforces CORS in production; rejects obviously weak secrets
+
+**Not covered (requires additional implementation):**
+- Multi-factor authentication (MFA/2FA)
+- Device fingerprinting or binding
+- Advanced anomaly detection (geo-blocking, behavior analysis)
+- Account lockout after N failed attempts
+- Email verification or password reset flows
+
+**Assumptions:**
+- Secrets are securely managed (env vars, vaults) and rotated periodically
+- Application runs behind TLS termination (HTTPS enforced by infrastructure)
+- Database backups and disaster recovery are handled at infrastructure level
+
 ## Security notes
 
 - No secrets in repo; supply via env.
-- Minimum 24-character secrets enforced; weak/shared secrets rejected in production.
+- Minimum 24-character secrets enforced; obviously weak secrets (e.g., "test", "changeme") rejected in production.
 - Access tokens last `ACCESS_TOKEN_TTL_MINUTES` (default 15m). Refresh tokens last `REFRESH_TOKEN_TTL_DAYS` (default 30d) and are rotated on refresh; old tokens are revoked.
+- **Refresh tokens are never stored**; only derived HMAC SHA-256 hashes are stored in the database.
 - Token reuse attempts are audited and blocked.
-- Passwords hashed with argon2; refresh tokens stored only as HMAC SHA-256 hashes.
+- Passwords hashed with argon2.
 - CORS disabled unless `CORS_ORIGINS` is set (comma-separated allowlist); required in production.
 - Aggressive rate limits on auth routes; general limit on all API routes.
 - Centralized error handling; no stack traces in production responses.
