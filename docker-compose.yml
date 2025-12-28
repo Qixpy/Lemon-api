@@ -1,0 +1,16 @@
+version: "3.9"
+services:
+  db:
+    image: postgres:15-alpine
+    container_name: lemon-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: lemon
+      POSTGRES_PASSWORD: lemon
+      POSTGRES_DB: lemon
+    ports:
+      - "5432:5432"
+    volumes:
+      - db-data:/var/lib/postgresql/data
+volumes:
+  db-data:
