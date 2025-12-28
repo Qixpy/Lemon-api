@@ -72,13 +72,32 @@ npm run dev   # hot reload
 npm run build && npm start
 ```
 
-## Endpoints (base `/api/v1`)
+## Endpoints
 
-- Public: `POST /auth/register`, `POST /auth/login`, `POST /auth/refresh`, `POST /auth/logout`
-- Health: `GET /health`, `GET /ready` (readiness probe with DB check)
-- Protected: `GET /me`
-- Items: `POST /items`, `GET /items?includeAll=true` (admin to see all), `GET /items/:id`, `PATCH /items/:id`, `DELETE /items/:id`
-- Admin: `PATCH /admin/users/:id/role`
+Base path: `/api/v1`
+
+**Health checks:**
+- `GET /health` — Process up
+- `GET /ready` — Database reachable
+
+**Public:**
+- `POST /auth/register`
+- `POST /auth/login`
+- `POST /auth/refresh`
+- `POST /auth/logout`
+
+**Protected:**
+- `GET /me`
+
+**Items:**
+- `POST /items`
+- `GET /items?includeAll=true` (admin to see all)
+- `GET /items/:id`
+- `PATCH /items/:id`
+- `DELETE /items/:id`
+
+**Admin:**
+- `PATCH /admin/users/:id/role`
 
 ## Testing
 
@@ -109,35 +128,35 @@ Results are written to `tests/test-results.json` with pass/fail counts and times
 
 ### Example cURL
 
-**Windows users:** Use `curl.exe` instead of `curl` (PowerShell has a curl alias that behaves differently).
+**Windows users:** Use `curl.exe` (PowerShell has a curl alias that behaves differently).
 
 ```bash
 # register
-curl -X POST http://localhost:3000/api/v1/auth/register \
-  -H "Content-Type: application/json" \
-  -d '{"email":"new@example.com","password":"StrongPassw0rd!"}'
+curl.exe -X POST http://localhost:3000/api/v1/auth/register ^
+  -H "Content-Type: application/json" ^
+  -d "{\"email\":\"new@example.com\",\"password\":\"StrongPassw0rd!\"}"
 
 # login
-curl -X POST http://localhost:3000/api/v1/auth/login \
-  -H "Content-Type: application/json" \
-  -d '{"email":"user@example.com","password":"User123!ChangeMe"}'
+curl.exe -X POST http://localhost:3000/api/v1/auth/login ^
+  -H "Content-Type: application/json" ^
+  -d "{\"email\":\"user@example.com\",\"password\":\"User123!ChangeMe\"}"
 
 # refresh
-curl -X POST http://localhost:3000/api/v1/auth/refresh \
-  -H "Content-Type: application/json" \
-  -d '{"refreshToken":"<refresh>"}'
+curl.exe -X POST http://localhost:3000/api/v1/auth/refresh ^
+  -H "Content-Type: application/json" ^
+  -d "{\"refreshToken\":\"<refresh>\"}"
 
 # get me
-curl http://localhost:3000/api/v1/me -H "Authorization: Bearer <access>"
+curl.exe http://localhost:3000/api/v1/me -H "Authorization: Bearer <access>"
 
 # create item
-curl -X POST http://localhost:3000/api/v1/items \
-  -H "Authorization: Bearer <access>" \
-  -H "Content-Type: application/json" \
-  -d '{"title":"My item","description":"demo"}'
+curl.exe -X POST http://localhost:3000/api/v1/items ^
+  -H "Authorization: Bearer <access>" ^
+  -H "Content-Type: application/json" ^
+  -d "{\"title\":\"My item\",\"description\":\"demo\"}"
 ```
 
-## Threat Model / Assumptions
+## Threat Model
 
 This API mitigates common threats but is not a complete security solution:
 
@@ -145,7 +164,7 @@ This API mitigates common threats but is not a complete security solution:
 - **IDOR attacks**: Owner-based access control; admin-only cross-tenant reads
 - **Brute force**: Aggressive rate limiting on auth endpoints
 - **Token reuse**: Refresh tokens are rotated; old tokens revoked and reuse attempts audited
-- **Injection attacks**: Parameterized Prisma queries; Zod validation on all inputs
+- **Injection risk**: Reduced via Prisma parameterization + strict Zod validation on all inputs
 - **Common misconfigurations**: Enforces CORS in production; rejects obviously weak secrets
 
 **Not covered (requires additional implementation):**
@@ -160,7 +179,7 @@ This API mitigates common threats but is not a complete security solution:
 - Application runs behind TLS termination (HTTPS enforced by infrastructure)
 - Database backups and disaster recovery are handled at infrastructure level
 
-## Security notes
+## Security Notes
 
 - No secrets in repo; supply via env.
 - Minimum 24-character secrets enforced; obviously weak secrets (e.g., "test", "changeme") rejected in production.
@@ -196,4 +215,4 @@ Creates:
 
 ---
 
-Made by [vizrastudio - omer surucu](https://www.vizrastudio.com)
+Made by [VizraStudio — Omer Surucu](https://www.vizrastudio.com)
