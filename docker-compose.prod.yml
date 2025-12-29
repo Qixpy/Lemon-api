@@ -1,4 +1,4 @@
-version: '3.8'
+version: "3.8"
 
 services:
   db:
@@ -7,7 +7,7 @@ services:
     restart: unless-stopped
     environment:
       POSTGRES_USER: lemon
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-changeme_prod_password}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_DB: lemon_prod
     volumes:
       - postgres_data_prod:/var/lib/postgresql/data
@@ -30,25 +30,26 @@ services:
         condition: service_healthy
     environment:
       # Database
-      DATABASE_URL: postgresql://lemon:${POSTGRES_PASSWORD:-changeme_prod_password}@db:5432/lemon_prod
-      
+      DATABASE_URL: postgresql://lemon:${POSTGRES_PASSWORD}@db:5432/lemon_prod
+
       # Node environment
       NODE_ENV: production
-      
+
       # Server configuration
       PORT: 3000
-      
-      # JWT secrets (REQUIRED - use strong secrets in production)
-      JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET:-change_this_jwt_access_secret_min_24_chars}
-      REFRESH_TOKEN_SECRET: ${REFRESH_TOKEN_SECRET:-change_this_refresh_secret_min_24_chars}
-      
-      # CORS (comma-separated origins, required in production)
-      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:3000}
-      
+
+      # JWT secrets (REQUIRED - must be set via .env.prod or environment)
+      JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET}
+      REFRESH_TOKEN_SECRET: ${REFRESH_TOKEN_SECRET}
+
+      # CORS (REQUIRED in production - comma-separated origins)
+      # For local testing only, use: CORS_ORIGINS=http://localhost:3000
+      CORS_ORIGINS: ${CORS_ORIGINS}
+
       # Optional: Token TTL configuration
       # ACCESS_TOKEN_TTL_MINUTES: 15
       # REFRESH_TOKEN_TTL_DAYS: 30
-      
+
       # Trust proxy (if behind reverse proxy/load balancer)
       # TRUST_PROXY: "true"
     ports:
@@ -56,7 +57,13 @@ services:
     networks:
       - lemon-network
     healthcheck:
-      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3000/health', (res) => { process.exit(res.statusCode === 200 ? 0 : 1); });"]
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "require('http').get('http://localhost:3000/health', (res) => { process.exit(res.statusCode === 200 ? 0 : 1); }).on('error', () => { process.exit(1); });",
+        ]
       interval: 30s
       timeout: 10s
       start_period: 40s
@@ -69,26 +76,30 @@ volumes:
 networks:
   lemon-network:
     driver: bridge
-
 # ============================================
 # SECURITY NOTICE
 # ============================================
-# NEVER commit this file with real secrets!
-# 
-# For production deployments:
-# 1. Create a .env.prod file (add to .gitignore)
-# 2. Set strong secrets:
-#    POSTGRES_PASSWORD=<strong-password>
-#    JWT_ACCESS_SECRET=<strong-secret-min-32-chars>
-#    REFRESH_TOKEN_SECRET=<strong-secret-min-32-chars>
-#    CORS_ORIGINS=https://yourdomain.com
-# 
-# 3. Run with: docker compose -f docker-compose.prod.yml --env-file .env.prod up -d
-# 
-# OR use your deployment platform's secret management:
+# REQUIRED: This compose file requires a .env.prod file with secrets.
+# It will NOT run without these environment variables.
+#
+# Create .env.prod (add to .gitignore):
+#
+# POSTGRES_PASSWORD=<strong-random-password-32-chars>
+# JWT_ACCESS_SECRET=<strong-random-secret-min-32-chars>
+# REFRESH_TOKEN_SECRET=<strong-random-secret-min-32-chars>
+# CORS_ORIGINS=https://yourdomain.com
+#
+# For LOCAL TESTING ONLY, you can use:
+# CORS_ORIGINS=http://localhost:3000
+#
+# Run with:
+# docker compose -f docker-compose.prod.yml --env-file .env.prod up -d --build
+#
+# For real production deployments, use proper secret management:
 # - Docker Swarm secrets
 # - Kubernetes secrets
 # - AWS Secrets Manager
 # - Azure Key Vault
-# - Environment variables from CI/CD
+# - HashiCorp Vault
+# - Environment variables from CI/CD pipeline
 # ============================================

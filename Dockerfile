@@ -47,9 +47,9 @@ FROM node:20-slim AS runtime
 
 WORKDIR /app
 
-# Install OpenSSL (required by Prisma)
+# Install OpenSSL and CA certificates (required by Prisma)
 RUN apt-get update && \
-    apt-get install -y openssl && \
+    apt-get install -y --no-install-recommends openssl ca-certificates && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
@@ -80,13 +80,14 @@ USER lemon
 
 # Set production environment
 ENV NODE_ENV=production
+ENV PORT=3000
 
-# Expose port (default 3000, can be overridden)
+# Expose port
 EXPOSE 3000
 
 # Health check (uses /health endpoint, not /ready to avoid DB flapping)
 HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
-    CMD node -e "require('http').get('http://localhost:3000/health', (res) => { process.exit(res.statusCode === 200 ? 0 : 1); });"
+    CMD node -e "require('http').get('http://localhost:3000/health', (res) => { process.exit(res.statusCode === 200 ? 0 : 1); }).on('error', () => { process.exit(1); });"
 
 # Start command: run migrations then start server
 # This ensures migrations are applied before the API starts

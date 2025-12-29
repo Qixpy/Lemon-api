@@ -412,6 +412,7 @@ Creates:
 ## Docker (Production)
 
 Lemon API includes production-ready Docker containers with:
+
 - Multi-stage builds for minimal image size
 - Non-root user execution
 - Health checks for orchestration
@@ -442,22 +443,44 @@ npm run docker:down:prod
 
 ### Production Deployment
 
-**⚠️ SECURITY WARNING: Never commit real secrets!**
+**⚠️ CRITICAL: Production compose requires secrets - no defaults provided!**
 
-For production deployments:
+The production Docker setup **requires** a `.env.prod` file. It will not start without proper secrets.
 
-1. **Create `.env.prod` file** (add to `.gitignore`):
+1. **Copy the example file**:
 
 ```bash
-# Database
-POSTGRES_PASSWORD=<strong-random-password-here>
+cp .env.prod.example .env.prod
+```
 
-# JWT Secrets (minimum 32 characters)
-JWT_ACCESS_SECRET=<strong-random-secret-min-32-chars>
-REFRESH_TOKEN_SECRET=<strong-random-secret-min-32-chars>
+2. **Generate strong secrets** (minimum 32 characters each):
 
-# CORS (comma-separated origins, REQUIRED in production)
+```bash
+# Linux/macOS
+openssl rand -base64 32
+
+# Windows PowerShell
+[Convert]::ToBase64String((1..32 | ForEach-Object { Get-Random -Minimum 0 -Maximum 256 }))
+
+# Node.js
+node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"
+```
+
+3. **Edit `.env.prod` with your values**:
+
+```bash
+# Database password (minimum 32 characters)
+POSTGRES_PASSWORD=your-strong-random-password-here
+
+# JWT Secrets (minimum 32 characters each)
+JWT_ACCESS_SECRET=your-strong-random-secret-here
+REFRESH_TOKEN_SECRET=your-different-strong-secret-here
+
+# CORS (comma-separated, REQUIRED in production)
 CORS_ORIGINS=https://yourdomain.com,https://www.yourdomain.com
+
+# For LOCAL TESTING ONLY:
+# CORS_ORIGINS=http://localhost:3000
 
 # Optional: Token TTL
 ACCESS_TOKEN_TTL_MINUTES=15
@@ -480,23 +503,27 @@ docker compose -f docker-compose.prod.yml --env-file .env.prod up -d --build
 ### Docker Scripts
 
 **Build image:**
+
 ```bash
 npm run docker:build
 # or: docker build -t lemon-api:latest .
 ```
 
 **Start production stack:**
+
 ```bash
 npm run docker:up:prod
 # Includes: postgres:16 + lemon-api with automatic migrations
 ```
 
 **View API logs:**
+
 ```bash
 npm run docker:logs
 ```
 
 **Stop and clean up:**
+
 ```bash
 npm run docker:down:prod
 # Removes containers and volumes
@@ -511,6 +538,7 @@ The Dockerfile uses a 3-stage build:
 3. **runtime**: Copy only production artifacts, run as non-root user
 
 **Security features:**
+
 - Non-root user (`lemon:lemon`)
 - Minimal attack surface (only production deps)
 - Health checks for container orchestration
@@ -537,6 +565,7 @@ The Dockerfile uses a 3-stage build:
 ### Troubleshooting
 
 **Container won't start:**
+
 ```bash
 # Check logs
 docker compose -f docker-compose.prod.yml logs api
@@ -548,6 +577,7 @@ docker compose -f docker-compose.prod.yml logs api
 ```
 
 **Database connection issues:**
+
 ```bash
 # Verify database is healthy
 docker compose -f docker-compose.prod.yml ps
@@ -557,6 +587,7 @@ docker compose -f docker-compose.prod.yml logs db
 ```
 
 **Reset everything:**
+
 ```bash
 # Stop and remove all data
 docker compose -f docker-compose.prod.yml down -v
