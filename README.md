@@ -77,19 +77,23 @@ npm run build && npm start
 Base path: `/api/v1`
 
 **Health checks:**
+
 - `GET /health` — Process up
 - `GET /ready` — Database reachable
 
 **Public:**
+
 - `POST /auth/register`
 - `POST /auth/login`
 - `POST /auth/refresh`
 - `POST /auth/logout`
 
 **Protected:**
+
 - `GET /me`
 
 **Items:**
+
 - `POST /items`
 - `GET /items?includeAll=true` (admin to see all)
 - `GET /items/:id`
@@ -97,34 +101,85 @@ Base path: `/api/v1`
 - `DELETE /items/:id`
 
 **Admin:**
+
 - `PATCH /admin/users/:id/role`
 
 ## Testing
 
-The test suite runs in-process (spins up its own server instance), so the API does **not** need to be running separately.
+The test suite uses **Vitest** and **supertest** for in-process HTTP testing. Tests run against a separate test database and do **not** require the API server to be running separately.
 
-**Prerequisites before testing:**
-1. Database running (`docker compose up -d`)
-2. Migrations applied (`npm run prisma:migrate`)
-3. Database seeded (`npm run seed`)
+### Prerequisites before testing
 
-**Run tests:**
+1. **Test database running**: `docker compose up -d`
+2. **Create test database**:
+
+   ```bash
+   # Linux/macOS
+   psql -U lemon -h localhost -d postgres -c "CREATE DATABASE lemon_test;"
+
+   # Windows (using docker exec)
+   docker exec -it lemon-api-postgres-1 psql -U lemon -d postgres -c "CREATE DATABASE lemon_test;"
+   ```
+
+3. **Apply migrations to test database**:
+
+   ```bash
+   # Set DATABASE_URL_TEST temporarily for migration
+   # Linux/macOS
+   DATABASE_URL=postgresql://lemon:lemon@localhost:5432/lemon_test npm run prisma:migrate
+
+   # Windows PowerShell
+   $env:DATABASE_URL="postgresql://lemon:lemon@localhost:5432/lemon_test"; npm run prisma:migrate
+   ```
+
+### Run tests
 
 ```bash
-npx tsx tests/testChecklist.ts
+# Run all tests once
+npm test
+
+# Watch mode (re-run on file changes)
+npm run test:watch
+
+# Generate JSON report (tests/test-results.json)
+npm run test:report
 ```
 
-Results are written to `tests/test-results.json` with pass/fail counts and timestamps. All 33 tests validate:
-- Health & readiness probes
-- Security headers (helmet, CORS)
-- Auth flows (register, login, refresh, logout)
-- RBAC enforcement
-- IDOR protection
-- Token rotation and revocation
-- Rate limiting
-- Error formatting
+### Test Coverage
 
-**Note for Windows:** Use `curl.exe` instead of `curl` to avoid PowerShell's `Invoke-WebRequest` alias.
+The suite includes 39 security-focused tests covering:
+
+- **Health checks**: `/health` and `/ready` endpoints
+- **Security headers**: helmet headers, CORS, x-powered-by removal
+- **Authentication**:
+  - Registration (validation, duplicates)
+  - Login (success, failures)
+  - Refresh token rotation and reuse detection
+  - Token hashing (SHA-256, never plaintext)
+  - Logout and token revocation
+  - `/me` endpoint authorization
+- **Items CRUD**:
+  - Create, read, update, delete operations
+  - IDOR protection (users cannot access others' items)
+  - Admin `includeAll` query
+  - Admin cross-tenant access
+- **Admin operations**:
+  - Role changes with audit trails
+  - Permission enforcement
+  - Error handling
+- **Error handling**: Consistent error format, requestId correlation
+- **Rate limiting**: Auth and general limiters with deterministic test config
+
+### Continuous Integration
+
+GitHub Actions CI runs automatically on push/PR:
+
+- Sets up Node 20 + PostgreSQL 16
+- Runs migrations
+- Executes full test suite
+- Uploads test results as artifacts
+
+See [.github/workflows/ci.yml](.github/workflows/ci.yml) for details.
 
 ### Example cURL
 
@@ -161,6 +216,7 @@ curl.exe -X POST http://localhost:3000/api/v1/items ^
 This API mitigates common threats but is not a complete security solution:
 
 **Explicitly mitigated:**
+
 - **IDOR attacks**: Owner-based access control; admin-only cross-tenant reads
 - **Brute force**: Aggressive rate limiting on auth endpoints
 - **Token reuse**: Refresh tokens are rotated; old tokens revoked and reuse attempts audited
@@ -168,6 +224,7 @@ This API mitigates common threats but is not a complete security solution:
 - **Common misconfigurations**: Enforces CORS in production; rejects obviously weak secrets
 
 **Not covered (requires additional implementation):**
+
 - Multi-factor authentication (MFA/2FA)
 - Device fingerprinting or binding
 - Advanced anomaly detection (geo-blocking, behavior analysis)
@@ -175,6 +232,7 @@ This API mitigates common threats but is not a complete security solution:
 - Email verification or password reset flows
 
 **Assumptions:**
+
 - Secrets are securely managed (env vars, vaults) and rotated periodically
 - Application runs behind TLS termination (HTTPS enforced by infrastructure)
 - Database backups and disaster recovery are handled at infrastructure level
@@ -207,11 +265,13 @@ Creates:
 - `npm run dev` — start in watch mode
 - `npm run build` — compile TypeScript
 - `npm start` — run compiled build
+- `npm test` — run all tests once
+- `npm run test:watch` — run tests in watch mode
+- `npm run test:report` — run tests and generate JSON report
 - `npm run prisma:migrate` — apply migrations (creates `init` on first run)
 - `npm run prisma:generate` — generate Prisma client
 - `npm run prisma:studio` — open Prisma Studio
 - `npm run seed` — run Prisma seed
-- `npx tsx tests/testChecklist.ts` — run test suite
 
 ---
 
