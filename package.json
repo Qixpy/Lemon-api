@@ -15,7 +15,11 @@
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev --name init",
     "prisma:studio": "prisma studio",
-    "seed": "prisma db seed"
+    "seed": "prisma db seed",
+    "docker:build": "docker build -t lemon-api:latest .",
+    "docker:up:prod": "docker compose -f docker-compose.prod.yml up -d --build",
+    "docker:down:prod": "docker compose -f docker-compose.prod.yml down -v",
+    "docker:logs": "docker compose -f docker-compose.prod.yml logs -f api"
   },
   "engines": {
     "node": ">=20"

@@ -1,0 +1,94 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgres:16
+    container_name: lemon-api-db-prod
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: lemon
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-changeme_prod_password}
+      POSTGRES_DB: lemon_prod
+    volumes:
+      - postgres_data_prod:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U lemon -d lemon_prod"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - lemon-network
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: lemon-api-prod
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      # Database
+      DATABASE_URL: postgresql://lemon:${POSTGRES_PASSWORD:-changeme_prod_password}@db:5432/lemon_prod
+      
+      # Node environment
+      NODE_ENV: production
+      
+      # Server configuration
+      PORT: 3000
+      
+      # JWT secrets (REQUIRED - use strong secrets in production)
+      JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET:-change_this_jwt_access_secret_min_24_chars}
+      REFRESH_TOKEN_SECRET: ${REFRESH_TOKEN_SECRET:-change_this_refresh_secret_min_24_chars}
+      
+      # CORS (comma-separated origins, required in production)
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:3000}
+      
+      # Optional: Token TTL configuration
+      # ACCESS_TOKEN_TTL_MINUTES: 15
+      # REFRESH_TOKEN_TTL_DAYS: 30
+      
+      # Trust proxy (if behind reverse proxy/load balancer)
+      # TRUST_PROXY: "true"
+    ports:
+      - "3000:3000"
+    networks:
+      - lemon-network
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3000/health', (res) => { process.exit(res.statusCode === 200 ? 0 : 1); });"]
+      interval: 30s
+      timeout: 10s
+      start_period: 40s
+      retries: 3
+
+volumes:
+  postgres_data_prod:
+    driver: local
+
+networks:
+  lemon-network:
+    driver: bridge
+
+# ============================================
+# SECURITY NOTICE
+# ============================================
+# NEVER commit this file with real secrets!
+# 
+# For production deployments:
+# 1. Create a .env.prod file (add to .gitignore)
+# 2. Set strong secrets:
+#    POSTGRES_PASSWORD=<strong-password>
+#    JWT_ACCESS_SECRET=<strong-secret-min-32-chars>
+#    REFRESH_TOKEN_SECRET=<strong-secret-min-32-chars>
+#    CORS_ORIGINS=https://yourdomain.com
+# 
+# 3. Run with: docker compose -f docker-compose.prod.yml --env-file .env.prod up -d
+# 
+# OR use your deployment platform's secret management:
+# - Docker Swarm secrets
+# - Kubernetes secrets
+# - AWS Secrets Manager
+# - Azure Key Vault
+# - Environment variables from CI/CD
+# ============================================

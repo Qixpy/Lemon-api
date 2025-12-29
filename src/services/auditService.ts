@@ -32,7 +32,7 @@ export async function recordAuditEvent(params: {
       actorUserId,
       ip: ip || null,
       userAgent: userAgent || null,
-      metadata: metadata ? sanitizeMetadata(metadata) : undefined,
+      metadata: metadata ? (sanitizeMetadata(metadata) as any) : undefined,
     },
   });
 }

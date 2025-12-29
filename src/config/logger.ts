@@ -16,7 +16,7 @@ export const logger = pino({
 });
 
 export const httpLogger = pinoHttp({
-  logger,
+  logger: logger as any,
   autoLogging: config.env !== "test",
   redact: {
     paths: ["req.headers.authorization", "req.headers.cookie"],
@@ -27,5 +27,5 @@ export const httpLogger = pinoHttp({
     if (res.statusCode >= 400) return "warn";
     return "info";
   },
-  customProps: (req) => ({ requestId: req.requestId }),
+  customProps: (req) => ({ requestId: (req as any).requestId }),
 });

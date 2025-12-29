@@ -250,30 +250,35 @@ This ensures:
 Lemon API uses multiple layers of automated security checks:
 
 ### 🔒 Continuous Integration (CI)
+
 - **Workflow**: [.github/workflows/ci.yml](.github/workflows/ci.yml)
 - **Runs**: On every push and PR to main
 - **Checks**: 39 security-focused tests, npm audit (informational)
 - **Database**: PostgreSQL 16 with full migration testing
 
 ### 🔍 Static Analysis (CodeQL)
+
 - **Workflow**: [.github/workflows/codeql.yml](.github/workflows/codeql.yml)
 - **Runs**: On push/PR + weekly scheduled scans
 - **Detects**: SQL injection, XSS, auth bypasses, and more
 - **Coverage**: `security-extended` query suite
 
 ### 📦 Dependency Scanning (Dependabot)
+
 - **Config**: [.github/dependabot.yml](.github/dependabot.yml)
 - **Monitors**: npm packages + GitHub Actions
 - **Frequency**: Weekly automated scans
 - **Action**: Opens PRs for security patches
 
 ### 🛡️ Dependency Review
+
 - **Workflow**: [.github/workflows/dependency-review.yml](.github/workflows/dependency-review.yml)
 - **Runs**: On pull requests
 - **Blocks**: High/critical vulnerabilities, GPL licenses
 - **Skips**: Dependabot PRs (avoid circular blocking)
 
 ### 🔐 Secret Scanning (Gitleaks)
+
 - **Workflow**: [.github/workflows/gitleaks.yml](.github/workflows/gitleaks.yml)
 - **Config**: [.gitleaks.toml](.gitleaks.toml)
 - **Runs**: On push/PR (scans full history)
@@ -320,6 +325,7 @@ scoop install gitleaks
 ### Supply Chain Hygiene
 
 This project uses `.npmrc` for safe npm defaults:
+
 - Exact versioning (`save-exact=true`)
 - Explicit audit checks in CI
 - Always commit `package-lock.json` for reproducible builds
@@ -403,6 +409,162 @@ Creates:
 - user@example.com / User123!ChangeMe (USER)
 - Demo items for both users
 
+## Docker (Production)
+
+Lemon API includes production-ready Docker containers with:
+- Multi-stage builds for minimal image size
+- Non-root user execution
+- Health checks for orchestration
+- Automatic database migrations on startup
+
+### Quick Start
+
+```bash
+# Build and start (with default test secrets - NOT for real production!)
+npm run docker:up:prod
+
+# Or manually
+docker compose -f docker-compose.prod.yml up -d --build
+
+# View logs
+npm run docker:logs
+# or: docker compose -f docker-compose.prod.yml logs -f api
+
+# Health check
+curl http://localhost:3000/health
+
+# Ready check (includes database connectivity)
+curl http://localhost:3000/ready
+
+# Stop and remove volumes
+npm run docker:down:prod
+```
+
+### Production Deployment
+
+**⚠️ SECURITY WARNING: Never commit real secrets!**
+
+For production deployments:
+
+1. **Create `.env.prod` file** (add to `.gitignore`):
+
+```bash
+# Database
+POSTGRES_PASSWORD=<strong-random-password-here>
+
+# JWT Secrets (minimum 32 characters)
+JWT_ACCESS_SECRET=<strong-random-secret-min-32-chars>
+REFRESH_TOKEN_SECRET=<strong-random-secret-min-32-chars>
+
+# CORS (comma-separated origins, REQUIRED in production)
+CORS_ORIGINS=https://yourdomain.com,https://www.yourdomain.com
+
+# Optional: Token TTL
+ACCESS_TOKEN_TTL_MINUTES=15
+REFRESH_TOKEN_TTL_DAYS=30
+```
+
+2. **Run with secrets file**:
+
+```bash
+docker compose -f docker-compose.prod.yml --env-file .env.prod up -d --build
+```
+
+3. **Or use platform secrets** (recommended for cloud deployments):
+   - Docker Swarm secrets
+   - Kubernetes secrets
+   - AWS Secrets Manager / Parameter Store
+   - Azure Key Vault
+   - Google Secret Manager
+
+### Docker Scripts
+
+**Build image:**
+```bash
+npm run docker:build
+# or: docker build -t lemon-api:latest .
+```
+
+**Start production stack:**
+```bash
+npm run docker:up:prod
+# Includes: postgres:16 + lemon-api with automatic migrations
+```
+
+**View API logs:**
+```bash
+npm run docker:logs
+```
+
+**Stop and clean up:**
+```bash
+npm run docker:down:prod
+# Removes containers and volumes
+```
+
+### Multi-Stage Build Details
+
+The Dockerfile uses a 3-stage build:
+
+1. **deps**: Install all dependencies (prod + dev)
+2. **build**: Compile TypeScript, generate Prisma client
+3. **runtime**: Copy only production artifacts, run as non-root user
+
+**Security features:**
+- Non-root user (`lemon:lemon`)
+- Minimal attack surface (only production deps)
+- Health checks for container orchestration
+- Automatic database migrations on startup
+
+### Container Architecture
+
+```
+┌─────────────────────────────────────┐
+│  lemon-api-prod (Node 20)          │
+│  - Runs as non-root user           │
+│  - Automatic migrations on start   │
+│  - Health: /health endpoint        │
+│  - Ready: /ready endpoint (DB)     │
+└─────────────────────────────────────┘
+              ↓
+┌─────────────────────────────────────┐
+│  lemon-api-db-prod (Postgres 16)   │
+│  - Persistent volume                │
+│  - Health checks (pg_isready)      │
+└─────────────────────────────────────┘
+```
+
+### Troubleshooting
+
+**Container won't start:**
+```bash
+# Check logs
+docker compose -f docker-compose.prod.yml logs api
+
+# Common issues:
+# 1. Database not ready: wait for db health check
+# 2. Migration failed: check DATABASE_URL
+# 3. Weak secrets: set strong JWT_ACCESS_SECRET and REFRESH_TOKEN_SECRET
+```
+
+**Database connection issues:**
+```bash
+# Verify database is healthy
+docker compose -f docker-compose.prod.yml ps
+
+# Check database logs
+docker compose -f docker-compose.prod.yml logs db
+```
+
+**Reset everything:**
+```bash
+# Stop and remove all data
+docker compose -f docker-compose.prod.yml down -v
+
+# Rebuild from scratch
+docker compose -f docker-compose.prod.yml up -d --build --force-recreate
+```
+
 ## Scripts
 
 - `npm run dev` — start in watch mode
@@ -415,6 +577,10 @@ Creates:
 - `npm run prisma:generate` — generate Prisma client
 - `npm run prisma:studio` — open Prisma Studio
 - `npm run seed` — run Prisma seed
+- `npm run docker:build` — build production Docker image
+- `npm run docker:up:prod` — start production containers
+- `npm run docker:down:prod` — stop production containers and remove volumes
+- `npm run docker:logs` — view API container logs
 
 ---
 

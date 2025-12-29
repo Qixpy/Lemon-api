@@ -1,0 +1,58 @@
+# Build context exclusions for Docker
+
+# Dependencies (installed in container)
+node_modules
+
+# Build output (built in container)
+dist
+
+# Git repository
+.git
+.gitignore
+.github
+
+# Environment files (NEVER include secrets)
+.env
+.env.*
+.env.example
+
+# Tests and coverage
+tests
+coverage
+
+# Documentation and development files
+*.md
+docs
+CHANGELOG.md
+IMPROVEMENTS.md
+LICENSE
+SECURITY.md
+
+# CI/CD
+.github
+
+# Editor and OS files
+.vscode
+.idea
+.DS_Store
+*.swp
+*.swo
+
+# Development compose
+docker-compose.yml
+docker-compose.dev.yml
+
+# Local scripts (not needed in container)
+scripts
+
+# Logs
+*.log
+npm-debug.log*
+logs
+
+# Prisma artifacts (generated in container)
+.prisma
+
+# Docker files (not needed in image)
+Dockerfile
+.dockerignore
