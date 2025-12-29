@@ -192,6 +192,7 @@ This project implements multiple layers of automated security scanning and monit
 ### Static Application Security Testing (SAST)
 
 **CodeQL** performs deep semantic code analysis to detect security vulnerabilities:
+
 - Runs on every push and PR to main
 - Weekly scheduled scans
 - Detects common vulnerabilities: SQL injection, XSS, authentication bypasses, etc.
@@ -202,6 +203,7 @@ See [.github/workflows/codeql.yml](.github/workflows/codeql.yml) for configurati
 ### Software Composition Analysis (SCA)
 
 **Dependabot** monitors dependencies for known vulnerabilities:
+
 - Automatically scans npm packages and GitHub Actions
 - Weekly checks for updates
 - Groups minor/patch updates to reduce PR noise
@@ -212,6 +214,7 @@ See [.github/dependabot.yml](.github/dependabot.yml) for configuration.
 ### Dependency Review
 
 **Dependency Review Action** blocks vulnerable dependencies in pull requests:
+
 - Fails PRs that introduce high/critical severity vulnerabilities
 - Blocks GPL-2.0 and GPL-3.0 licensed dependencies
 - Provides detailed summary in PR comments
@@ -235,6 +238,7 @@ To enforce quality gates, configure branch protection rules for `main`:
    - ✅ Do not allow bypassing the above settings
 
 This ensures:
+
 - All tests pass before merge
 - CodeQL finds no new security issues
 - No vulnerable dependencies are introduced
