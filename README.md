@@ -232,7 +232,7 @@ To enforce quality gates, configure branch protection rules for `main`:
 1. Navigate to: **Settings** → **Branches** → **Branch protection rules**
 2. Add rule for `main` branch with:
    - ✅ Require status checks to pass before merging
-     - Required checks: `test`, `analyze (CodeQL)`, `dependency-review`
+     - Required checks: `test`, `analyze (CodeQL)`, `dependency-review`, `Secret Scanning (Gitleaks)`
    - ✅ Require branches to be up to date before merging
    - ✅ Require linear history (optional, prevents merge commits)
    - ✅ Do not allow bypassing the above settings
@@ -242,7 +242,87 @@ This ensures:
 - All tests pass before merge
 - CodeQL finds no new security issues
 - No vulnerable dependencies are introduced
+- No secrets are committed
 - Code has been reviewed
+
+## Security Checks
+
+Lemon API uses multiple layers of automated security checks:
+
+### 🔒 Continuous Integration (CI)
+- **Workflow**: [.github/workflows/ci.yml](.github/workflows/ci.yml)
+- **Runs**: On every push and PR to main
+- **Checks**: 39 security-focused tests, npm audit (informational)
+- **Database**: PostgreSQL 16 with full migration testing
+
+### 🔍 Static Analysis (CodeQL)
+- **Workflow**: [.github/workflows/codeql.yml](.github/workflows/codeql.yml)
+- **Runs**: On push/PR + weekly scheduled scans
+- **Detects**: SQL injection, XSS, auth bypasses, and more
+- **Coverage**: `security-extended` query suite
+
+### 📦 Dependency Scanning (Dependabot)
+- **Config**: [.github/dependabot.yml](.github/dependabot.yml)
+- **Monitors**: npm packages + GitHub Actions
+- **Frequency**: Weekly automated scans
+- **Action**: Opens PRs for security patches
+
+### 🛡️ Dependency Review
+- **Workflow**: [.github/workflows/dependency-review.yml](.github/workflows/dependency-review.yml)
+- **Runs**: On pull requests
+- **Blocks**: High/critical vulnerabilities, GPL licenses
+- **Skips**: Dependabot PRs (avoid circular blocking)
+
+### 🔐 Secret Scanning (Gitleaks)
+- **Workflow**: [.github/workflows/gitleaks.yml](.github/workflows/gitleaks.yml)
+- **Config**: [.gitleaks.toml](.gitleaks.toml)
+- **Runs**: On push/PR (scans full history)
+- **Prevents**: Accidental secret commits
+- **Local hooks**: Optional pre-commit scanning (see Contributing section)
+
+## Contributing
+
+### Development Setup
+
+```bash
+# 1. Clone and install
+git clone https://github.com/Qixpy/Lemon-api.git
+cd Lemon-api
+npm install
+
+# 2. Optional: Install local git hooks for secret scanning
+# Windows
+.\scripts\install-hooks.ps1
+
+# macOS/Linux
+./scripts/install-hooks.sh
+
+# 3. Install Gitleaks (optional, for pre-commit scanning)
+# macOS
+brew install gitleaks
+
+# Windows
+scoop install gitleaks
+# or: choco install gitleaks
+
+# Linux
+# See: https://github.com/gitleaks/gitleaks#installing
+```
+
+### Before Submitting PRs
+
+- ✅ **Never commit secrets** — Use `.env` for local config, never commit `.env` files
+- ✅ **Run tests locally** — `npm test` ensures all tests pass
+- ✅ **Update CHANGELOG.md** — Document user-visible changes
+- ✅ **Commit package-lock.json** — Always use `npm ci` in CI, commit lockfile changes
+- ✅ **Follow security checklist** — See PR template for details
+
+### Supply Chain Hygiene
+
+This project uses `.npmrc` for safe npm defaults:
+- Exact versioning (`save-exact=true`)
+- Explicit audit checks in CI
+- Always commit `package-lock.json` for reproducible builds
 
 ### Example cURL
 

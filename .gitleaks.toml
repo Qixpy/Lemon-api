@@ -1,0 +1,51 @@
+# Gitleaks configuration for Lemon API
+# Detects secrets and credentials in code and git history
+
+title = "Gitleaks configuration for Lemon API"
+
+# Use default rules (most common secret patterns)
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Allowlist for test secrets and placeholders"
+paths = [
+  # Allow test secrets used only in CI workflow
+  '''\.github/workflows/ci\.yml''',
+  # Allow test setup with test secrets
+  '''tests/setup\.ts''',
+  # Allow test passwords (not real secrets, just test fixture data)
+  '''tests/helpers\.ts''',
+  '''tests/.*\.test\.ts''',
+  '''tests/testChecklist\.ts''',
+]
+
+# Allow specific test secret values only in allowed paths above
+regexes = [
+  # Test JWT secrets used in CI and test setup
+  '''test_jwt_access_secret_min_24_chars''',
+  '''test_jwt_refresh_secret_min_24_chars''',
+  # Test passwords (obvious test fixtures, not real secrets)
+  '''User123!ChangeMe''',
+  '''Admin123!ChangeMe''',
+]
+
+# Additional patterns to ignore (add cautiously)
+[allowlist.regexTarget]
+description = "Ignore example/placeholder values"
+regexes = [
+  # Example environment variable placeholders
+  '''your-secret-key-here''',
+  '''changeme''',
+  '''your-\w+-here''',
+]
+
+# Stop patterns - these should NEVER be committed
+[allowlist.stopwords]
+stopwords = [
+  # These patterns will always trigger, even if in allowlist
+  "private key",
+  "BEGIN RSA PRIVATE KEY",
+  "BEGIN OPENSSH PRIVATE KEY",
+  "BEGIN PGP PRIVATE KEY",
+]

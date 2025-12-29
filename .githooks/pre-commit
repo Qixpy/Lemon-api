@@ -1,0 +1,25 @@
+#!/bin/sh
+# Pre-commit hook to scan for secrets using Gitleaks
+# This hook runs automatically before each commit if gitleaks is installed
+
+# Check if gitleaks is installed
+if ! command -v gitleaks >/dev/null 2>&1; then
+    echo "⚠️  Gitleaks not installed - skipping secret scan"
+    echo "   To install: brew install gitleaks (macOS) or see https://github.com/gitleaks/gitleaks#installing"
+    echo "   Or use CI workflow for secret scanning"
+    exit 0
+fi
+
+echo "🔍 Scanning staged changes for secrets..."
+
+# Run gitleaks on staged files
+if ! gitleaks protect --staged --config=.gitleaks.toml --verbose; then
+    echo ""
+    echo "❌ Gitleaks detected potential secrets!"
+    echo "   Review the findings above and remove any secrets before committing."
+    echo "   If this is a false positive, update .gitleaks.toml allowlist."
+    exit 1
+fi
+
+echo "✅ No secrets detected"
+exit 0

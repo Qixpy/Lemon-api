@@ -1,0 +1,97 @@
+name: Bug Report
+description: Report a bug or issue with Lemon API
+title: "[Bug]: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report a bug! Please fill out the form below.
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Bug Description
+      description: A clear and concise description of what the bug is.
+      placeholder: Tell us what went wrong
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to Reproduce
+      description: Steps to reproduce the behavior
+      placeholder: |
+        1. Send POST request to /api/auth/login
+        2. Include credentials...
+        3. See error response
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected Behavior
+      description: What you expected to happen
+      placeholder: The API should return a 200 status with access token
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual Behavior
+      description: What actually happened
+      placeholder: The API returns a 500 error
+    validations:
+      required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      description: What version of Lemon API are you using?
+      placeholder: v1.0.0 or commit hash
+    validations:
+      required: false
+
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: Your runtime environment
+      placeholder: |
+        - OS: Ubuntu 22.04
+        - Node: 20.x
+        - Database: PostgreSQL 16
+    validations:
+      required: false
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant Logs
+      description: Any relevant log output (please redact sensitive information)
+      render: shell
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: security
+    attributes:
+      label: Security Impact
+      description: Does this bug have security implications?
+      options:
+        - label: This bug has potential security implications
+          required: false
+        - label: I have reviewed SECURITY.md for reporting vulnerabilities
+          required: false
+
+  - type: textarea
+    id: additional
+    attributes:
+      label: Additional Context
+      description: Any other context about the problem
+    validations:
+      required: false
