@@ -25,95 +25,65 @@ async function runTests(): Promise<void> {
   try {
     // Run vitest with JSON reporter
     const { stdout, stderr } = await execAsync(
-      "npx vitest run --reporter=json --reporter=default",
+      "npx vitest run --reporter=verbose",
       {
-        env: { ...process.env, NODE_ENV: "test" },
+        env: {
+          ...process.env,
+          NODE_ENV: "test",
+        },
+        maxBuffer: 1024 * 1024 * 10, // 10MB buffer
       }
     );
 
-    // Parse JSON output (vitest outputs JSON to stdout with --reporter=json)
-    const lines = stdout.split("\n");
-    let jsonOutput: any = null;
-
-    // Find the JSON output line
-    for (const line of lines) {
-      if (line.trim().startsWith("{")) {
-        try {
-          jsonOutput = JSON.parse(line);
-          break;
-        } catch (e) {
-          // Continue searching
-        }
-      }
-    }
-
     const duration = Date.now() - startTime;
 
-    let result: TestResult;
+    // Parse from console output - strip ANSI codes first
+    const stripAnsi = (str: string) => str.replace(/\x1B\[[0-9;]*m/g, "");
+    const output = stripAnsi(stdout + "\n" + stderr);
+    
+    // Debug: log output for troubleshooting
+    // console.log("OUTPUT:", output.substring(output.length - 500));
+    
+    // Extract test counts (not test file counts)
+    // Looking for patterns like "Tests  39 passed (39)"
+    const testsLineMatch = output.match(/Tests\s+(\d+)\s+passed/i);
+    const failedLineMatch = output.match(/(\d+)\s+failed/);
+    const skippedLineMatch = output.match(/(\d+)\s+skipped/);
+    
+    const passed = testsLineMatch ? parseInt(testsLineMatch[1]) : 0;
+    const failed = failedLineMatch ? parseInt(failedLineMatch[1]) : 0;
+    const skipped = skippedLineMatch ? parseInt(skippedLineMatch[1]) : 0;
 
-    if (jsonOutput && jsonOutput.testResults) {
-      // Parse Vitest JSON format
-      const allTests = jsonOutput.testResults.flatMap(
-        (file: any) => file.assertionResults || []
-      );
-
-      const passed = allTests.filter((t: any) => t.status === "passed").length;
-      const failed = allTests.filter((t: any) => t.status === "failed").length;
-      const skipped = allTests.filter(
-        (t: any) => t.status === "skipped" || t.status === "pending"
-      ).length;
-
-      const failures = allTests
-        .filter((t: any) => t.status === "failed")
-        .map((t: any) => ({
-          name: t.fullName || t.title,
-          error: t.failureMessages?.join("\n") || "Unknown error",
-        }));
-
-      result = {
-        timestamp: new Date().toISOString(),
-        total: allTests.length,
-        passed,
-        failed,
-        skipped,
-        duration,
-        failures,
-      };
-    } else {
-      // Fallback: count from console output
-      const passMatch = stdout.match(/(\d+) passed/);
-      const failMatch = stdout.match(/(\d+) failed/);
-      const skipMatch = stdout.match(/(\d+) skipped/);
-
-      const passed = passMatch ? parseInt(passMatch[1]) : 0;
-      const failed = failMatch ? parseInt(failMatch[1]) : 0;
-      const skipped = skipMatch ? parseInt(skipMatch[1]) : 0;
-
-      result = {
-        timestamp: new Date().toISOString(),
-        total: passed + failed + skipped,
-        passed,
-        failed,
-        skipped,
-        duration,
-        failures: [],
-      };
-    }
+    const result: TestResult = {
+      timestamp: new Date().toISOString(),
+      total: passed + failed + skipped,
+      passed,
+      failed,
+      skipped,
+      duration,
+      failures: [],
+    };
 
     // Write result to JSON file
     const outputPath = path.join(__dirname, "test-results.json");
     await fs.writeFile(outputPath, JSON.stringify(result, null, 2));
 
-    console.log("\n✅ Test Results Summary:");
-    console.log(`   Total: ${result.total}`);
+    const icon = result.failed === 0 ? "✅" : "❌";
+    console.log(`\n${icon} Test Results Summary:`);
+    console.log(`   Total Tests: ${result.total}`);
     console.log(`   Passed: ${result.passed}`);
     console.log(`   Failed: ${result.failed}`);
     console.log(`   Skipped: ${result.skipped}`);
     console.log(`   Duration: ${(result.duration / 1000).toFixed(2)}s`);
     console.log(`\n📄 Report written to: ${outputPath}\n`);
 
+    // Exit with appropriate code
     if (result.failed > 0) {
+      console.error("\n⚠️  Some tests failed. See output above for details.\n");
       process.exit(1);
+    } else {
+      console.log("\n🎉 All tests passed!\n");
+      process.exit(0);
     }
   } catch (error: any) {
     console.error("Test execution failed:", error.message);

@@ -5,12 +5,14 @@ import dotenv from "dotenv";
 // Load test environment
 dotenv.config();
 
-// Override with test-specific values
-process.env.NODE_ENV = "test";
-process.env.DATABASE_URL =
+// Override with test-specific values - DATABASE_URL is what Prisma uses
+const testDbUrl =
   process.env.DATABASE_URL_TEST ||
   process.env.DATABASE_URL ||
   "postgresql://lemon:lemon@localhost:5432/lemon_test";
+
+process.env.NODE_ENV = "test";
+process.env.DATABASE_URL = testDbUrl;
 process.env.JWT_ACCESS_SECRET =
   process.env.JWT_ACCESS_SECRET || "test_jwt_access_secret_min_24_chars";
 process.env.REFRESH_TOKEN_SECRET =

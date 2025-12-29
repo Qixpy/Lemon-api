@@ -47,9 +47,22 @@ jobs:
           DATABASE_URL: postgresql://lemon:lemon@localhost:5432/lemon_test
 
       - name: Run tests
-        run: npm run test:report
+        run: npm test
         env:
           NODE_ENV: test
+          DATABASE_URL: postgresql://lemon:lemon@localhost:5432/lemon_test
+          DATABASE_URL_TEST: postgresql://lemon:lemon@localhost:5432/lemon_test
+          JWT_ACCESS_SECRET: test_jwt_access_secret_min_24_chars_for_ci
+          REFRESH_TOKEN_SECRET: test_refresh_secret_min_24_chars_for_ci
+          CORS_ORIGINS: ""
+          PORT: "0"
+
+      - name: Generate test report
+        if: always()
+        run: npm run test:report || true
+        env:
+          NODE_ENV: test
+          DATABASE_URL: postgresql://lemon:lemon@localhost:5432/lemon_test
           DATABASE_URL_TEST: postgresql://lemon:lemon@localhost:5432/lemon_test
           JWT_ACCESS_SECRET: test_jwt_access_secret_min_24_chars_for_ci
           REFRESH_TOKEN_SECRET: test_refresh_secret_min_24_chars_for_ci
@@ -63,3 +76,4 @@ jobs:
           name: test-results
           path: tests/test-results.json
           retention-days: 30
+          if-no-files-found: ignore
