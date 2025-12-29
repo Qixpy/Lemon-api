@@ -1,5 +1,9 @@
 # Lemon API
 
+[![CI](https://github.com/Qixpy/Lemon-api/actions/workflows/ci.yml/badge.svg)](https://github.com/Qixpy/Lemon-api/actions/workflows/ci.yml)
+[![CodeQL](https://github.com/Qixpy/Lemon-api/actions/workflows/codeql.yml/badge.svg)](https://github.com/Qixpy/Lemon-api/actions/workflows/codeql.yml)
+[![Dependency Review](https://github.com/Qixpy/Lemon-api/actions/workflows/dependency-review.yml/badge.svg)](https://github.com/Qixpy/Lemon-api/actions/workflows/dependency-review.yml)
+
 Secure, production-style REST API built with Express, TypeScript, Prisma, PostgreSQL, JWT auth, and RBAC.
 
 ## Features
@@ -180,6 +184,61 @@ GitHub Actions CI runs automatically on push/PR:
 - Uploads test results as artifacts
 
 See [.github/workflows/ci.yml](.github/workflows/ci.yml) for details.
+
+## Security Automation
+
+This project implements multiple layers of automated security scanning and monitoring:
+
+### Static Application Security Testing (SAST)
+
+**CodeQL** performs deep semantic code analysis to detect security vulnerabilities:
+- Runs on every push and PR to main
+- Weekly scheduled scans
+- Detects common vulnerabilities: SQL injection, XSS, authentication bypasses, etc.
+- Uses `security-extended` query suite for comprehensive coverage
+
+See [.github/workflows/codeql.yml](.github/workflows/codeql.yml) for configuration.
+
+### Software Composition Analysis (SCA)
+
+**Dependabot** monitors dependencies for known vulnerabilities:
+- Automatically scans npm packages and GitHub Actions
+- Weekly checks for updates
+- Groups minor/patch updates to reduce PR noise
+- Opens PRs with security patches when vulnerabilities are discovered
+
+See [.github/dependabot.yml](.github/dependabot.yml) for configuration.
+
+### Dependency Review
+
+**Dependency Review Action** blocks vulnerable dependencies in pull requests:
+- Fails PRs that introduce high/critical severity vulnerabilities
+- Blocks GPL-2.0 and GPL-3.0 licensed dependencies
+- Provides detailed summary in PR comments
+
+See [.github/workflows/dependency-review.yml](.github/workflows/dependency-review.yml) for configuration.
+
+### Vulnerability Reporting
+
+Please report security issues responsibly via GitHub Security Advisories. See [SECURITY.md](SECURITY.md) for details.
+
+### Branch Protection (Recommended)
+
+To enforce quality gates, configure branch protection rules for `main`:
+
+1. Navigate to: **Settings** → **Branches** → **Branch protection rules**
+2. Add rule for `main` branch with:
+   - ✅ Require status checks to pass before merging
+     - Required checks: `test`, `analyze (CodeQL)`, `dependency-review`
+   - ✅ Require branches to be up to date before merging
+   - ✅ Require linear history (optional, prevents merge commits)
+   - ✅ Do not allow bypassing the above settings
+
+This ensures:
+- All tests pass before merge
+- CodeQL finds no new security issues
+- No vulnerable dependencies are introduced
+- Code has been reviewed
 
 ### Example cURL
 

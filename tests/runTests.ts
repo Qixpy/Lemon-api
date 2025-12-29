@@ -40,16 +40,16 @@ async function runTests(): Promise<void> {
     // Parse from console output - strip ANSI codes first
     const stripAnsi = (str: string) => str.replace(/\x1B\[[0-9;]*m/g, "");
     const output = stripAnsi(stdout + "\n" + stderr);
-    
+
     // Debug: log output for troubleshooting
     // console.log("OUTPUT:", output.substring(output.length - 500));
-    
+
     // Extract test counts (not test file counts)
     // Looking for patterns like "Tests  39 passed (39)"
     const testsLineMatch = output.match(/Tests\s+(\d+)\s+passed/i);
     const failedLineMatch = output.match(/(\d+)\s+failed/);
     const skippedLineMatch = output.match(/(\d+)\s+skipped/);
-    
+
     const passed = testsLineMatch ? parseInt(testsLineMatch[1]) : 0;
     const failed = failedLineMatch ? parseInt(failedLineMatch[1]) : 0;
     const skipped = skippedLineMatch ? parseInt(skippedLineMatch[1]) : 0;
