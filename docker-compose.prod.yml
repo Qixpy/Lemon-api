@@ -25,6 +25,7 @@ services:
       dockerfile: Dockerfile
     container_name: lemon-api-prod
     restart: unless-stopped
+    init: true  # Better signal handling and zombie process reaping
     depends_on:
       db:
         condition: service_healthy
